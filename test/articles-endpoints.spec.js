@@ -3,7 +3,7 @@ const knex = require('knex');
 const app = require('../src/app')
 const  { makeArticlesArray } = require('./articles.fixtures')
 
-describe.only('Articles Endpoints', function() {
+describe('Articles Endpoints', function() {
   let db;
   before('make knex instance', () => {
     db = knex({
@@ -36,7 +36,7 @@ describe.only('Articles Endpoints', function() {
           .insert(testArticles)
       })
 
-      it('responds with 20 and all of the articles', () => {
+      it('responds with 200 and all of the articles', () => {
         return supertest(app)
           .get('/articles')
           .expect(200, testArticles)
@@ -44,7 +44,7 @@ describe.only('Articles Endpoints', function() {
     })
   })
 
-  describe(`GET /articles/article_id`, () => {
+  describe(`GET /articles/:article_id`, () => {
     context(`Given no articles`, () => {
       it('responds with 404', () => {
         const articleId = 123456
@@ -72,5 +72,55 @@ describe.only('Articles Endpoints', function() {
     })
   })
 
+  describe.only('POST /articles', () => {
+    it('creates an article, responding with 201 and the new article', () => {
+      this.retries(3)
+      const newArticle = {
+        title: 'Test new article',
+        style: 'Listicle',
+        content: 'Test new article content...'
+      }
+      return supertest(app)
+        .post('/articles')
+        .send(newArticle)
+        .expect(201)
+        .expect(res => {
+          expect(res.body.title).to.eql(newArticle.title)
+          expect(res.body.style).to.eql(newArticle.style)
+          expect(res.body.content).to.eql(newArticle.content)
+          expect(res.body).to.have.property('id')
+          expect(res.headers.location).to.eql(`/articles/${res.body.id}`)
+          const expectedDate = new Date().toLocaleString()
+          const actualDate = new Date(res.body.date_published).toLocaleString()
+          expect(actualDate).to.eql(expectedDate)
+        })
+        .then(postRes => 
+          supertest(app)
+            .get(`/articles/${postRes.body.id}`)
+            .expect(postRes.body)
+        )
+    })
+
+    const requiredFields = ['title', 'style', 'content']
+
+    requiredFields.forEach(field => {
+      const newArticle = {
+        title: 'Test new article',
+        style: 'Listicle',
+        content: 'Test new article content...'
+      }
+
+      it(`responds with 400 and an error message when the '${field}' is missing`, () => {
+        delete newArticle[field]
+
+        return supertest(app)
+          .post('/articles')
+          .send(newArticle)
+          .expect(400, {
+            error: { message: `Missing '${field}' in request body` }
+          })
+      })
+    })
+  })
 
 })

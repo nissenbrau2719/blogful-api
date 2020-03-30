@@ -40,6 +40,9 @@ articlesRouter
         return res.status(400).json({
           error: { message: `Missing '${key}' in request body` }
         })
+      } else {
+        newArticle.title = xss(newArticle.title)
+        newArticle.content = xss(newArticle.content)
       }
     }
 

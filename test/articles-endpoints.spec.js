@@ -117,54 +117,81 @@ describe('Articles Endpoints', function() {
   })
 
   describe('POST /articles', () => {
-    it('creates an article, responding with 201 and the new article', () => {
-      this.retries(3)
-      const newArticle = {
-        title: 'Test new article',
-        style: 'Listicle',
-        content: 'Test new article content...'
-      }
-      return supertest(app)
-        .post('/articles')
-        .send(newArticle)
-        .expect(201)
-        .expect(res => {
-          expect(res.body.title).to.eql(newArticle.title)
-          expect(res.body.style).to.eql(newArticle.style)
-          expect(res.body.content).to.eql(newArticle.content)
-          expect(res.body).to.have.property('id')
-          expect(res.headers.location).to.eql(`/articles/${res.body.id}`)
-          const expectedDate = new Date().toLocaleString()
-          const actualDate = new Date(res.body.date_published).toLocaleString()
-          expect(actualDate).to.eql(expectedDate)
-        })
-        .then(postRes => 
-          supertest(app)
-            .get(`/articles/${postRes.body.id}`)
-            .expect(postRes.body)
-        )
-    })
-
-    const requiredFields = ['title', 'style', 'content']
-
-    requiredFields.forEach(field => {
-      const newArticle = {
-        title: 'Test new article',
-        style: 'Listicle',
-        content: 'Test new article content...'
-      }
-
-      it(`responds with 400 and an error message when the '${field}' is missing`, () => {
-        delete newArticle[field]
-
+    context('Given all required fields are filled out', () => {
+      it('creates an article, responding with 201 and the new article', () => {
+        this.retries(3)
+        const newArticle = {
+          title: 'Test new article',
+          style: 'Listicle',
+          content: 'Test new article content...'
+        }
         return supertest(app)
           .post('/articles')
           .send(newArticle)
-          .expect(400, {
-            error: { message: `Missing '${field}' in request body` }
+          .expect(201)
+          .expect(res => {
+            expect(res.body.title).to.eql(newArticle.title)
+            expect(res.body.style).to.eql(newArticle.style)
+            expect(res.body.content).to.eql(newArticle.content)
+            expect(res.body).to.have.property('id')
+            expect(res.headers.location).to.eql(`/articles/${res.body.id}`)
+            const expectedDate = new Date().toLocaleString()
+            const actualDate = new Date(res.body.date_published).toLocaleString()
+            expect(actualDate).to.eql(expectedDate)
           })
+          .then(postRes => 
+            supertest(app)
+              .get(`/articles/${postRes.body.id}`)
+              .expect(postRes.body)
+          )
       })
     })
+    
+    context('A required field is missing from the posted article', () => {
+      const requiredFields = ['title', 'style', 'content']
+
+      requiredFields.forEach(field => {
+        const newArticle = {
+          title: 'Test new article',
+          style: 'Listicle',
+          content: 'Test new article content...'
+        }
+
+        it(`responds with 400 and an error message when the '${field}' is missing`, () => {
+          delete newArticle[field]
+
+          return supertest(app)
+            .post('/articles')
+            .send(newArticle)
+            .expect(400, {
+              error: { message: `Missing '${field}' in request body` }
+            })
+        })
+      })
+    })
+
+    context('The article posted is malicious', () => {
+      const maliciousArticle = makeMaliciousArticle()
+      const expectedArticle = makeSanitizedArticle()
+      it('creates the article but sanitizes the malicious content', () => {
+        return supertest(app)
+          .post('/articles')
+          .send(maliciousArticle)
+          .expect(201)
+          .expect(res => {
+            expect(res.body.title).to.eql(expectedArticle.title)
+            expect(res.body.content).to.eql(expectedArticle.content)
+          })
+          .then(postRes => 
+            supertest(app)
+              .get(`/articles/${postRes.body.id}`)
+              .expect(postRes.body)
+          )
+      })
+      
+
+    })
+   
   })
 
 })

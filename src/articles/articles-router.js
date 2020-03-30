@@ -1,5 +1,6 @@
 const express = require('express');
 const ArticlesService = require('./articles-service');
+const xss = require('xss');
 
 const articlesRouter = express.Router();
 const jsonParser = express.json();
@@ -9,13 +10,28 @@ articlesRouter
   .get((req, res, next) => {
     ArticlesService.getAllArticles(req.app.get('db'))
       .then(articles => {
-        res.json(articles)
+        let sanitizedArticles = []
+        for(const article of articles) {
+          sanitizedTitle = xss(article.title)
+          sanitizedContent = xss(article.content)
+          sanitizedArticles.push({
+            id: article.id,
+            style: article.style,
+            title: sanitizedTitle,
+            content: sanitizedContent
+          })
+        }
+        res.json(sanitizedArticles)
       })
       .catch(next)
   })
   .post(jsonParser, (req, res, next) => {
     const { title, content, style } = req.body
-    const newArticle = { title, content, style }
+    const newArticle = {
+      title: xss(title),
+      content: xss(content), 
+      style: style 
+    }
 
     for (const [key, value] of Object.entries(newArticle)) {
       if (value == null) {
@@ -45,7 +61,13 @@ articlesRouter
             error: { message: `Article doesn't exist` }
           })
         }
-        res.json(article)
+        res.json({
+          id: article.id,
+          style: article.style,
+          title: xss(article.title), // sanitize title
+          content: xss(article.content), // sanitize content
+          date_published: article.date_published
+        })
       })
       .catch(next)
   })

@@ -33,6 +33,7 @@ function makeArticlesArray() {
 
 function makeMaliciousArticle() {
   return {
+    date_published: '1919-12-22T16:28:32.615Z',
     id: 911,
     title: 'Naughty naughty very naughty <script>alert("xss");</script>',
     style: 'How-to',
@@ -40,7 +41,18 @@ function makeMaliciousArticle() {
   }
 }
 
+function makeSanitizedArticle() {
+  return{
+    date_published: '1919-12-22T16:28:32.615Z',
+    id: 911,
+    style: 'How-to',
+    title: 'Naughty naughty very naughty &lt;script&gt;alert(\"xss\");&lt;/script&gt;',
+    content: `Bad image <img src="https://url.to.file.which/does-not.exist">. But not <strong>all</strong> bad.`
+  }
+}
+
 module.exports = {
   makeArticlesArray,
-  makeMaliciousArticle
+  makeMaliciousArticle,
+  makeSanitizedArticle
 }

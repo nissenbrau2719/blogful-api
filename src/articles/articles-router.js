@@ -17,8 +17,10 @@ articlesRouter
           sanitizedArticles.push({
             id: article.id,
             style: article.style,
+            date_published: article.date_published,
             title: sanitizedTitle,
             content: sanitizedContent
+            
           })
         }
         res.json(sanitizedArticles)
@@ -28,8 +30,8 @@ articlesRouter
   .post(jsonParser, (req, res, next) => {
     const { title, content, style } = req.body
     const newArticle = {
-      title: xss(title),
-      content: xss(content), 
+      title: title,
+      content: content, 
       style: style 
     }
 
